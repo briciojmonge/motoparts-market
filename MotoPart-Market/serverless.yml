@@ -1,0 +1,80 @@
+service: moto-parts-market
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+  environment:
+    DYNAMODB_TABLE: PartsTable
+    AWS_ACCESS_KEY_ID: dummy
+    AWS_SECRET_ACCESS_KEY: dummy
+    AWS_REGION: local
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:Query
+          Resource: !GetAtt PartsTable.Arn
+
+functions:
+  createPart:
+    handler: src/handlers/createPart.handler
+    events:
+      - http:
+          path: partes
+          method: post
+          cors: true
+
+  getParts:
+    handler: src/handlers/getParts.handler
+    events:
+      - http:
+          path: partes
+          method: get
+          cors: true
+
+resources:
+  Resources:
+    PartsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: PartsTable
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: tipo
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: TipoIndex
+            KeySchema:
+              - AttributeName: tipo
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
+
+plugins:
+  - serverless-dynamodb-local
+  - serverless-offline
+
+custom:
+  dynamodb:
+    stages:
+      - dev
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
+      seed: true
+    seed:
+      dev:
+        sources:
+          - table: PartsTable
+            sources: [./scripts/seed-data.json]

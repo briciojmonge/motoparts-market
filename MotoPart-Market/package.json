@@ -1,0 +1,24 @@
+{
+  "name": "moto-parts-market",
+  "version": "1.0.0",
+  "description": "Serverless API for motorcycle parts exchange",
+  "main": "index.js",
+  "scripts": {
+    "offline": "serverless offline start",
+    "deploy:sim": "serverless deploy --stage prod --noDeploy",
+    "seed": "node scripts/seed-dynamodb.js",
+    "test": "jest --testTimeout=30000",
+    "test:integration": "jest test/integration"
+  },
+  "dependencies": {
+    "aws-sdk": "^1.18.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "axios": "^1.6.2",
+    "jest": "^29.7.0",
+    "serverless": "^4.33.3",
+    "serverless-dynamodb-local": "^0.0.7",
+    "serverless-offline": "^14.5.0"
+  }
+}

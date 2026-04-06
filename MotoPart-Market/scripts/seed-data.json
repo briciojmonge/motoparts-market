@@ -1,0 +1,16 @@
+[
+  {
+    "id": "seed-001",
+    "nombre": "Freno de disco delantero",
+    "tipo": "frenos",
+    "precio": 45.99,
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "seed-002",
+    "nombre": "Cadena de transmisión",
+    "tipo": "transmision",
+    "precio": 29.50,
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  }
+]

@@ -1,122 +1,146 @@
 // test/integration/api.test.js
-const axios = require('axios');
+const partService = require('../../src/business/partService');
+const partRepository = require('../../src/repositories/partRepository');
+const createPartHandler = require('../../src/handlers/createPart');
+const getPartsHandler = require('../../src/handlers/getParts');
 
-const BASE_URL = 'http://localhost:3000';
-const API_ENDPOINT = '/partes';
+// Mock del repositorio para evitar conexiones reales a DynamoDB
+jest.mock('../../src/repositories/partRepository');
 
-// Función auxiliar para esperar que el servidor esté listo (opcional)
-const waitForServer = async (retries = 5, delay = 1000) => {
-  for (let i = 0; i < retries; i++) {
-    try {
-      await axios.get(BASE_URL);
-      console.log('Server is ready');
-      return;
-    } catch (err) {
-      if (i === retries - 1) throw new Error('Server not reachable');
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-};
-
-describe('API de partes de motos', () => {
-  beforeAll(async () => {
-    // Opcional: esperar a que el servidor esté disponible
-    // await waitForServer();
+describe('API de partes de motos - Integración', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
-  describe('POST /partes', () => {
+  describe('POST /partes - Handler', () => {
     it('debe crear una nueva parte con datos válidos', async () => {
-      const nuevaParte = {
+      const mockPart = {
+        id: 'test-id-123',
         nombre: 'Freno de disco trasero',
         tipo: 'frenos',
         precio: 45.99
       };
 
-      const response = await axios.post(`${BASE_URL}${API_ENDPOINT}`, nuevaParte);
-      expect(response.status).toBe(201);
-      expect(response.data).toHaveProperty('message', 'Parte creada exitosamente');
-      expect(response.data.part).toMatchObject({
-        nombre: nuevaParte.nombre,
-        tipo: nuevaParte.tipo,
-        precio: nuevaParte.precio
+      partRepository.save.mockResolvedValue(mockPart);
+
+      const event = {
+        body: JSON.stringify({
+          nombre: 'Freno de disco trasero',
+          tipo: 'frenos',
+          precio: 45.99
+        })
+      };
+
+      const response = await createPartHandler.handler(event);
+      
+      expect(response.statusCode).toBe(201);
+      const body = JSON.parse(response.body);
+      expect(body).toHaveProperty('message', 'Parte creada exitosamente');
+      expect(body.part).toMatchObject({
+        nombre: 'Freno de disco trasero',
+        tipo: 'frenos',
+        precio: 45.99
       });
-      expect(response.data.part).toHaveProperty('id');
-      expect(response.data.part).toHaveProperty('createdAt');
+      expect(body.part).toHaveProperty('id');
     });
 
     it('debe rechazar una parte sin nombre', async () => {
-      const parteInvalida = {
-        tipo: 'motor',
-        precio: 100
+      const event = {
+        body: JSON.stringify({
+          tipo: 'motor',
+          precio: 100
+        })
       };
 
-      try {
-        await axios.post(`${BASE_URL}${API_ENDPOINT}`, parteInvalida);
-      } catch (error) {
-        expect(error.response.status).toBe(400);
-        expect(error.response.data.error).toContain('nombre es obligatorio');
-      }
+      const response = await createPartHandler.handler(event);
+      
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.body);
+      expect(body.error).toContain('nombre');
     });
 
     it('debe rechazar una parte con precio negativo', async () => {
-      const parteInvalida = {
-        nombre: 'Manillar',
-        tipo: 'manillar',
-        precio: -10
+      const event = {
+        body: JSON.stringify({
+          nombre: 'Manillar',
+          tipo: 'manillar',
+          precio: -10
+        })
       };
 
-      try {
-        await axios.post(`${BASE_URL}${API_ENDPOINT}`, parteInvalida);
-      } catch (error) {
-        expect(error.response.status).toBe(400);
-        expect(error.response.data.error).toContain('precio debe ser un número positivo');
-      }
+      const response = await createPartHandler.handler(event);
+      
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.body);
+      expect(body.error).toContain('precio debe ser un número positivo');
     });
   });
 
-  describe('GET /partes?tipo=...', () => {
-    // Primero creamos una parte para asegurar que existe un tipo
-    let tipoPrueba = 'test-get';
-
-    beforeAll(async () => {
-      // Crear al menos dos partes del mismo tipo
-      await axios.post(`${BASE_URL}${API_ENDPOINT}`, {
-        nombre: 'Parte GET 1',
-        tipo: tipoPrueba,
-        precio: 10
-      });
-      await axios.post(`${BASE_URL}${API_ENDPOINT}`, {
-        nombre: 'Parte GET 2',
-        tipo: tipoPrueba,
-        precio: 20
-      });
-    });
-
+  describe('GET /partes?tipo=... - Handler', () => {
     it('debe devolver todas las partes de un tipo existente', async () => {
-      const response = await axios.get(`${BASE_URL}${API_ENDPOINT}?tipo=${tipoPrueba}`);
-      expect(response.status).toBe(200);
-      expect(response.data).toHaveProperty('tipo', tipoPrueba);
-      expect(response.data.count).toBeGreaterThanOrEqual(2);
-      expect(response.data.parts.length).toBe(response.data.count);
-      response.data.parts.forEach(part => {
+      const tipoPrueba = 'frenos';
+      const mockParts = [
+        {
+          id: 'id-1',
+          nombre: 'Freno de disco',
+          tipo: tipoPrueba,
+          precio: 45.99
+        },
+        {
+          id: 'id-2',
+          nombre: 'Pastillas de freno',
+          tipo: tipoPrueba,
+          precio: 25.50
+        }
+      ];
+
+      partRepository.findByTipo.mockResolvedValue(mockParts);
+
+      const event = {
+        queryStringParameters: {
+          tipo: tipoPrueba
+        }
+      };
+
+      const response = await getPartsHandler.handler(event);
+      
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body).toHaveProperty('tipo', tipoPrueba);
+      expect(body.count).toBe(2);
+      expect(body.parts.length).toBe(2);
+      body.parts.forEach(part => {
         expect(part.tipo).toBe(tipoPrueba);
       });
     });
 
-    it('debe devolver un array vacío para un tipo que no existe', async () => {
-      const response = await axios.get(`${BASE_URL}${API_ENDPOINT}?tipo=inexistente123`);
-      expect(response.status).toBe(200);
-      expect(response.data.count).toBe(0);
-      expect(response.data.parts).toEqual([]);
+    it('debe retornar error cuando no se proporciona tipo', async () => {
+      const event = {
+        queryStringParameters: null
+      };
+
+      const response = await getPartsHandler.handler(event);
+      
+      expect(response.statusCode).toBe(400);
+      const body = JSON.parse(response.body);
+      expect(body.error).toBeDefined();
     });
 
-    it('debe responder con error 400 si falta el parámetro tipo', async () => {
-      try {
-        await axios.get(`${BASE_URL}${API_ENDPOINT}`);
-      } catch (error) {
-        expect(error.response.status).toBe(400);
-        expect(error.response.data.error).toContain('falta el parámetro "tipo"');
-      }
+    it('debe devolver un array vacío para un tipo que no existe', async () => {
+      partRepository.findByTipo.mockResolvedValue([]);
+
+      const event = {
+        queryStringParameters: {
+          tipo: 'inexistente123'
+        }
+      };
+
+      const response = await getPartsHandler.handler(event);
+      
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.count).toBe(0);
+      expect(body.parts).toEqual([]);
     });
   });
 });

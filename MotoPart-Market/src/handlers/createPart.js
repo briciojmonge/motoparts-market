@@ -20,8 +20,11 @@ module.exports.handler = async (event) => {
     };
   } catch (error) {
     console.error(error);
+    const isBadRequest = error.message.includes('obligatorio') || 
+                         error.message.includes('positivo') ||
+                         error.message.includes('debe ser');
     return {
-      statusCode: error.message.includes('obligatorio') ? 400 : 500,
+      statusCode: isBadRequest ? 400 : 500,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'

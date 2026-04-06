@@ -10,10 +10,10 @@ This project is a fully serverless RESTful API that allows users to:
 - Store data in AWS DynamoDB
 
 **Technology Stack:**
-- Node.js 18.x
+- Node.js 20.x
 - AWS Lambda
-- AWS DynamoDB
 - Serverless Framework
+- File-based storage (local development)
 - Jest (testing)
 
 ## Project Structure
@@ -44,9 +44,9 @@ MotoPart-Market/
 
 ## Prerequisites
 
-- **Node.js**: v18.x or higher ([Download](https://nodejs.org/))
+- **Node.js**: v20.x or higher ([Download](https://nodejs.org/))
 - **npm**: Comes with Node.js
-- **Serverless Framework**: Installed globally or locally via npm
+- **Serverless Framework**: Installed locally via npm
 - **AWS Account**: Required for deployment (optional for local testing)
 
 ## Installation
@@ -63,11 +63,10 @@ npm install
 ```
 
 This will install all required packages including:
-- `aws-sdk`: AWS SDK for JavaScript
+- `@aws-sdk/client-dynamodb`: AWS SDK v3 for DynamoDB (production)
 - `uuid`: For generating unique part IDs
 - `serverless`: Serverless Framework
 - `serverless-offline`: Local AWS Lambda emulation
-- `serverless-dynamodb-local`: Local DynamoDB emulation
 - `jest`: Testing framework
 
 ### 3. Install Serverless CLI (Optional - if not already installed)
@@ -79,7 +78,7 @@ npm install -g serverless
 
 ### Local Development (Recommended for Testing)
 
-Start the local Serverless Offline environment with DynamoDB:
+Start the local Serverless Offline environment:
 
 ```bash
 npm run offline
@@ -88,13 +87,12 @@ npm run offline
 This command:
 - Starts a local HTTP server on `http://localhost:3000`
 - Emulates AWS Lambda functions
-- Emulates DynamoDB database in memory
-- Auto-seeds sample data from `scripts/seed-data.json`
+- Uses in-memory database for development (no need for Java/DynamoDB Local)
+- Endpoints are available at `http://localhost:3000/dev/...` prefix
 
 You should see output indicating the server is running:
 ```
-offline: Starting Offline: dev, nodejs18.x, undefined
-...
+offline: Starting Offline: dev, nodejs20.x
 offline: Ready! Your function will be called when you make an HTTP request
 ```
 
@@ -117,7 +115,7 @@ The API provides two main endpoints:
 
 ### 1. Create a Part (POST)
 
-**Endpoint:** `POST /partes`
+**Endpoint:** `POST /dev/partes`
 
 **Request Headers:**
 ```
@@ -140,7 +138,7 @@ Content-Type: application/json
 
 **cURL Example:**
 ```bash
-curl -X POST http://localhost:3000/partes \
+curl -X POST http://localhost:3000/dev/partes \
   -H "Content-Type: application/json" \
   -d '{
     "nombre": "Spark Plug",
@@ -173,14 +171,14 @@ curl -X POST http://localhost:3000/partes \
 
 ### 2. Get Parts by Type (GET)
 
-**Endpoint:** `GET /partes?tipo={type}`
+**Endpoint:** `GET /dev/partes?tipo={type}`
 
 **Query Parameters:**
 - `tipo` (string, required): Type/category to filter by
 
 **cURL Example:**
 ```bash
-curl http://localhost:3000/partes?tipo=Electrical
+curl http://localhost:3000/dev/partes?tipo=Electrical
 ```
 
 **Success Response (200 OK):**
@@ -265,48 +263,55 @@ The application uses the following environment variables (configured in `serverl
 ## Troubleshooting
 
 ### Port Already in Use
-If port 3000 is already in use, the offline server will fail to start. Kill the process using port 3000 or modify `serverless.yml`.
+If port 3000 is already in use, the offline server will fail to start. Kill the process using port 3000:
 
-### DynamoDB Connection Issues
-Ensure the DynamoDB Local (in-memory) is running. The `serverless-dynamodb-local` plugin should handle this automatically.
-
-### AWS Credentials Not Found
-For deployment, configure AWS credentials:
-```bash
-aws configure
+**Windows (PowerShell):**
+```powershell
+Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force
 ```
 
-Or set environment variables:
+**Mac/Linux:**
 ```bash
-export AWS_ACCESS_KEY_ID=your_key
-export AWS_SECRET_ACCESS_KEY=your_secret
+lsof -ti:3000 | xargs kill -9
+```
+
+Then restart the server:
+```bash
+npm run offline
+```
+
+### Data Persistence
+Local data is stored in `.dev-db.json` in the project root. To reset all data:
+```bash
+rm .dev-db.json  # or: del .dev-db.json (Windows)
+npm run offline  # Restart the server
 ```
 
 ## API Examples
 
 ### Example 1: Create Multiple Parts
 ```bash
-curl -X POST http://localhost:3000/partes \
+curl -X POST http://localhost:3000/dev/partes \
   -H "Content-Type: application/json" \
   -d '{"nombre":"Air Filter","tipo":"Engine","precio":22.99}'
 
-curl -X POST http://localhost:3000/partes \
+curl -X POST http://localhost:3000/dev/partes \
   -H "Content-Type: application/json" \
   -d '{"nombre":"Brake Pads","tipo":"Brake","precio":35.50}'
 
-curl -X POST http://localhost:3000/partes \
+curl -X POST http://localhost:3000/dev/partes \
   -H "Content-Type: application/json" \
   -d '{"nombre":"Chain","tipo":"Transmission","precio":45.00}'
 ```
 
 ### Example 2: Retrieve All Engine Parts
 ```bash
-curl http://localhost:3000/partes?tipo=Engine
+curl http://localhost:3000/dev/partes?tipo=Engine
 ```
 
 ### Example 3: Using Postman
 1. Open Postman
-2. Create a new POST request to `http://localhost:3000/partes`
+2. Create a new POST request to `http://localhost:3000/dev/partes`
 3. Set header: `Content-Type: application/json`
 4. Set body (raw JSON):
 ```json
@@ -317,19 +322,3 @@ curl http://localhost:3000/partes?tipo=Engine
 }
 ```
 5. Click Send
-
-## Next Steps
-
-- Review [ARCHITECTURE.md](ARCHITECTURE.md) for detailed architecture information
-- Extend the API with additional endpoints (update, delete, search)
-- Add authentication and authorization
-- Implement additional business logic layers
-- Deploy to AWS Lambda and DynamoDB
-
-## License
-
-MIT
-
-## Support
-
-For issues or questions, please create an issue in the repository.

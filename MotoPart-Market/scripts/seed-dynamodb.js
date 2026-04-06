@@ -1,12 +1,21 @@
-const AWS = require('aws-sdk');
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb');
 const fs = require('fs');
 const path = require('path');
 
-const dynamoDb = new AWS.DynamoDB.DocumentClient({
+const client = new DynamoDBClient({
   region: 'localhost',
   endpoint: 'http://localhost:8000',
-  accessKeyId: 'dummy',
-  secretAccessKey: 'dummy'
+  credentials: {
+    accessKeyId: 'dummy',
+    secretAccessKey: 'dummy'
+  }
+});
+
+const dynamoDb = DynamoDBDocumentClient.from(client, {
+  marshallOptions: {
+    removeUndefinedValues: true
+  }
 });
 
 const TABLE_NAME = process.env.DYNAMODB_TABLE || 'PartsTable';
@@ -21,7 +30,7 @@ async function seedData() {
         TableName: TABLE_NAME,
         Item: item
       };
-      await dynamoDb.put(params).promise();
+      await dynamoDb.send(new PutCommand(params));
       console.log(`Seeded item: ${item.nombre}`);
     }
 

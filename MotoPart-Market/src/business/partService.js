@@ -4,28 +4,37 @@ const partRepository = require('../repositories/partRepository');
 
 class PartService {
   async createPart(nombre, tipo, precio) {
-    // Validaciones de negocio
     if (!nombre || nombre.trim() === '') {
       throw new Error('El nombre es obligatorio');
     }
+
     if (!tipo || tipo.trim() === '') {
       throw new Error('El tipo es obligatorio');
     }
-    if (precio === undefined || precio <= 0) {
+
+    const precioNumerico = Number(precio);
+
+    if (!Number.isFinite(precioNumerico) || precioNumerico <= 0) {
       throw new Error('El precio debe ser un número positivo');
     }
 
-    const id = uuidv4();
-    const part = new Part(id, nombre.trim(), tipo.trim(), parseFloat(precio));
+    const part = new Part({
+      id: uuidv4(),
+      nombre: nombre.trim(),
+      tipo: tipo.trim(),
+      precio: precioNumerico
+    });
+
     await partRepository.save(part);
     return part;
   }
 
   async getPartsByTipo(tipo) {
-    if (!tipo) {
+    if (!tipo || tipo.trim() === '') {
       throw new Error('El parámetro "tipo" es requerido');
     }
-    return await partRepository.findByTipo(tipo);
+
+    return partRepository.findByTipo(tipo.trim());
   }
 }
 

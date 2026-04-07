@@ -1,20 +1,17 @@
-# "org" ensures this Service is used with the correct Serverless Framework Access Key.
-org: fausto24
-# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
-app: moto-parts-mart
 service: moto-parts-market
-
 
 provider:
   name: aws
   runtime: nodejs20.x
   region: us-east-1
-  stage: ''
+  stage: dev
   environment:
     DYNAMODB_TABLE: PartsTable
+    DYNAMODB_ENDPOINT: http://127.0.0.1:8000
     AWS_ACCESS_KEY_ID: dummy
     AWS_SECRET_ACCESS_KEY: dummy
-    AWS_REGION: local
+    AWS_REGION: us-east-1
+
   iam:
     role:
       statements:
@@ -22,9 +19,16 @@ provider:
           Action:
             - dynamodb:PutItem
             - dynamodb:Query
-          Resource: !GetAtt PartsTable.Arn
+          Resource:
+            - !GetAtt PartsTable.Arn
+            - !Sub '${PartsTable.Arn}/index/*'
 
+plugins:
+  - serverless-offline
 
+custom:
+  serverless-offline:
+    httpPort: 3000
 
 resources:
   Resources:
@@ -49,21 +53,13 @@ resources:
               ProjectionType: ALL
         BillingMode: PAY_PER_REQUEST
 
-plugins:
-  - serverless-offline
-
-custom:
-  serverless-offline:
-    port: 3000
-    httpPort: 3000
-
 functions:
   health:
     handler: src/handlers/health.handler
     events:
       - http:
           path: /
-          method: any
+          method: get
           cors: true
 
   createPart:

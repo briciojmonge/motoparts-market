@@ -1,29 +1,30 @@
 class Part {
-  constructor(id, nombre, tipo, precio) {
+  constructor({ id, nombre, tipo, precio, createdAt = new Date().toISOString() }) {
     this.id = id;
     this.nombre = nombre;
     this.tipo = tipo;
-    this.precio = precio;
-    this.createdAt = new Date().toISOString();
+    this.precio = Number(precio);
+    this.createdAt = createdAt;
   }
 
-  toDynamoItem() {
+  toItem() {
     return {
-      id: { S: this.id },
-      nombre: { S: this.nombre },
-      tipo: { S: this.tipo },
-      precio: { N: this.precio.toString() },
-      createdAt: { S: this.createdAt }
+      id: this.id,
+      nombre: this.nombre,
+      tipo: this.tipo,
+      precio: this.precio,
+      createdAt: this.createdAt
     };
   }
 
-  static fromDynamoItem(item) {
-    return new Part(
-      item.id.S,
-      item.nombre.S,
-      item.tipo.S,
-      parseFloat(item.precio.N)
-    );
+  static fromItem(item) {
+    return new Part({
+      id: item.id,
+      nombre: item.nombre,
+      tipo: item.tipo,
+      precio: item.precio,
+      createdAt: item.createdAt
+    });
   }
 }
 

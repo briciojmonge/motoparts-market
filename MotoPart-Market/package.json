@@ -4,8 +4,9 @@
   "description": "Serverless API for motorcycle parts exchange",
   "main": "index.js",
   "scripts": {
-    "offline": "serverless offline start",
-    "deploy:sim": "serverless deploy --stage prod --noDeploy",
+    "offline": "serverless offline start --stage dev",
+    "deploy:sim": "serverless package --stage prod",
+    "db:init": "node scripts/init-dynamodb.js",
     "seed": "node scripts/seed-dynamodb.js",
     "test": "jest --testTimeout=30000",
     "test:integration": "jest test/integration"
@@ -13,7 +14,6 @@
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.600.0",
     "@aws-sdk/lib-dynamodb": "^3.600.0",
-    "aws-sdk": "^2.1600.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {

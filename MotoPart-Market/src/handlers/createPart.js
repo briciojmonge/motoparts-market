@@ -1,10 +1,25 @@
 const partService = require('../business/partService');
 
 module.exports.handler = async (event) => {
-  try {
-    const body = JSON.parse(event.body);
-    const { nombre, tipo, precio } = body;
+  let body;
 
+  try {
+    body = JSON.parse(event.body || '{}');
+  } catch (error) {
+    return {
+      statusCode: 400,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({
+        error: 'El body debe ser JSON válido'
+      })
+    };
+  }
+
+  try {
+    const { nombre, tipo, precio } = body;
     const part = await partService.createPart(nombre, tipo, precio);
 
     return {
@@ -19,10 +34,12 @@ module.exports.handler = async (event) => {
       })
     };
   } catch (error) {
-    console.error(error);
-    const isBadRequest = error.message.includes('obligatorio') || 
-                         error.message.includes('positivo') ||
-                         error.message.includes('debe ser');
+    const isBadRequest =
+      error.message.includes('obligatorio') ||
+      error.message.includes('positivo') ||
+      error.message.includes('requerido') ||
+      error.message.includes('JSON válido');
+
     return {
       statusCode: isBadRequest ? 400 : 500,
       headers: {

@@ -13,7 +13,7 @@ This project is a local serverless REST API that allows users to:
 **Technology Stack:**
 
 - Node.js 20.x
-- Serverless Framework
+- Serverless Framework v3
 - Serverless Offline
 - AWS SDK v3
 - DynamoDB Local
@@ -32,7 +32,7 @@ The project follows a layered architecture:
 
 Client (curl / Postman / Insomnia)  
 → Serverless Offline  
-→ Lambda Handler  
+→ Handler  
 → Business Layer  
 → Repository  
 → DynamoDB Local
@@ -78,7 +78,7 @@ MotoPart-Market/
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/motoparts-market.git
+git clone https://github.com/briciojmonge/motoparts-market.git
 cd MotoPart-Market
 ```
 
@@ -177,13 +177,7 @@ Content-Type: application/json
 **cURL Example:**
 
 ```bash
-curl -X POST http://localhost:3000/dev/partes \
-  -H "Content-Type: application/json" \
-  -d '{
-    "nombre": "Spark Plug",
-    "tipo": "Electrical",
-    "precio": 15.50
-  }'
+curl -X POST http://localhost:3000/dev/partes -H "Content-Type: application/json" -d '{"nombre":"Spark Plug","tipo":"Electrical","precio":15.50}'
 ```
 
 **Success Response (201 Created):**
@@ -356,10 +350,10 @@ curl -X POST http://localhost:3000/dev/partes \
   -d '{"nombre":"Chain","tipo":"Transmission","precio":45.00}'
 ```
 
-### Example 2: Retrieve All Engine Parts
+### Example 2: Retrieve Parts by Type
 
 ```bash
-curl http://localhost:3000/dev/partes?tipo=Engine
+curl http://localhost:3000/dev/partes?tipo=frenos
 ```
 
 ### Example 3: Using Postman
